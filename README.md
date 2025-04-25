@@ -1,29 +1,19 @@
-# 🌾 RedM Field System Script
+# 🌾 RedM Field System
 
-A fully customizable **Field System** designed for immersive farming and roleplay experiences in **RedM**. This system allows players to plant, grow, and harvest crops in a realistic and interactive way.
+A dynamic and modular **Field System** for RedM — designed with full support for **VORP** and **RSG** frameworks.  
+Set up unlimited farming zones, whitelist jobs, required items, and more with high flexibility for both legal and illegal roleplay use.
 
 ---
 
 ## 🚀 Features
 
-- 🌱 Plant and harvest different types of crops
-- 📍 Custom field zones with precise location support
-- 🕰️ Real-time or accelerated growth stages
-- 🎯 Roleplay integration for farming jobs or illegal activities
-- 🧩 Easy to configure with a clean JSON or Lua setup
-- 💬 Localization-ready
-- 🔐 Optimized and secure server-client communication
+- ✅ **Full Compatibility** with **VORP** & **RSG Core**
+- 🌍 **Unlimited Field Zones** — place as many field areas as you want
+- 👨‍🌾 **Whitelist Job Requirement** — restrict access to specific jobs (e.g., farmer, drug cartel)
+- 🎟️ **Item Requirement** — require specific items (e.g., seeds, shovel) to plant or harvest
+- 📍 **Custom Blip per Field** — optional blip for each zone
+- 🌀 **Adjustable Radius** — define the exact size of each field's interaction zone
+- 🔇 **Disable PvP in Field Area** — prevent fighting while working the field
+- 🧩 Modular config system — easy to tweak and expand
 
 ---
-
-## 🖼️ Preview
-
-> *(Add GIFs or images here showing planting, crop growth, and harvesting)*
-
----
-
-## 🛠️ Installation
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/yourusername/field-system-redm.git
