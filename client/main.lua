@@ -5,10 +5,13 @@ local jobWhitelisted, props
 function setupBlip()
 	for _, data in pairs(Config.Field) do
 
-		Core.Functions.GetPlayerData(function(PlayerData)
-			jobWhitelisted = PlayerData.job.name
-		end)
-	
+		if Framework == 'rsg' then
+			Core.Functions.GetPlayerData(function(PlayerData)
+				jobWhitelisted = PlayerData.job.name
+			end)
+		elseif Framework == 'vorp' then
+			jobWhitelisted = lib.callback.await("phantom_field:GetJob", false)
+		end
 		if data.blip.enabled then
 			if data.whitelistJob.enabled then
 				if jobWhitelisted == data.whitelistJob.jobName then
@@ -23,7 +26,7 @@ function setupBlip()
 					Citizen.InvokeNative(0x662D364ABF16DE2F, blip, blip_modifier_hash)
 				else
 					RemoveBlip(blip)
-					resetField()
+					-- resetField()
 				end
 			else
 				local blip_modifier_hash = GetHashKey(data.blip.color)
@@ -53,7 +56,8 @@ function setupBlip()
 			end
 		else
 			RemoveBlip(blipCircle)
-			resetField()
+			
+			-- resetField()
 		end
 	end
 end
@@ -61,96 +65,89 @@ end
 
 Citizen.CreateThread(function()
 	while true do
-		Citizen.Wait(1000)
-		
 		local playerPed = PlayerPedId()
-		
 		local coords = GetEntityCoords(playerPed)
-		
-		local letSleep = true
+
+		local foundPlant = false
 
 		for k, v in pairs(Config.Field) do
 			local LocationV = v.Location
-			local distance = Vdist(coords, LocationV.x, LocationV.y, LocationV.z, true)
+			local distance = #(coords - vector3(LocationV.x, LocationV.y, LocationV.z))
 
-			if distance < 20.0 then
+			if distance < 15.0 then
 				currentPlant = k
+				foundPlant = true
 				break
 			end
-		end		
+		end
 
-		if currentPlant then
-			local propFarm = Config.Field[currentPlant].propFarm
-
-			local Location = Config.Field[currentPlant].Location
-
-			local whitelistedJob = Config.Field[currentPlant].whitelistJob.jobName
-
-			Core.Functions.GetPlayerData(function(PlayerData)
-				jobWhitelisted = PlayerData.job.name
-			end)
-			
-			posX, posY, Z, heading = Location.x+math.random(-10,10), Location.y+math.random(-10,10), Location.z+999.0, math.random(0,359)+.0
-
-			ground,posZ = GetGroundZAndNormalFor_3dCoord(posX+.0,posY+.0,Z,1)
-
-			if Vdist(coords, Location.x, Location.y,Location.z, false) < 20 then
-				letSleep = false
-
-				if Config.Field[currentPlant].disablePvP ~= isPvPDisabled then
-					DisablePvP(Config.Field[currentPlant].disablePvP)
+		if not foundPlant then
+			if currentPlant then
+				for _, v in pairs(farmProps) do
+					DeleteObject(v)
 				end
-				
-				if Config.Field[currentPlant]. whitelistJob.enabled then
+				farmProps = {}
+
+				if isPvPDisabled then
+					DisablePvP(false)
+				end
+			end
+
+			currentPlant = nil
+			Citizen.Wait(2000)
+		else
+			local fieldData = Config.Field[currentPlant]
+			local Location = fieldData.Location
+			local propFarm = fieldData.propFarm
+			local whitelistedJob = fieldData.whitelistJob.jobName
+
+			if Framework == 'rsg' then
+				Core.Functions.GetPlayerData(function(PlayerData)
+					jobWhitelisted = PlayerData.job.name
+				end)
+			elseif Framework == 'vorp' then
+				jobWhitelisted = lib.callback.await("phantom_field:GetJob", false)
+			end
+
+			local posX, posY, Z, heading = Location.x + math.random(-10,10), Location.y + math.random(-10,10), Location.z + 999.0, math.random(0,359) + .0
+			local ground, posZ = GetGroundZAndNormalFor_3dCoord(posX + .0, posY + .0, Z, 1)
+
+			if #(coords - vector3(Location.x, Location.y, Location.z)) < fieldData.farmRadius then
+				if fieldData.disablePvP ~= isPvPDisabled then
+					DisablePvP(fieldData.disablePvP)
+				end
+
+				if fieldData.whitelistJob.enabled then
 					if jobWhitelisted == whitelistedJob then
-						if ground then
-							if #farmProps < Config.Field[currentPlant].maxProps then
-								props = CreateObject(propFarm, posX, posY, posZ, false, true, false)
-
-								NetworkRegisterEntityAsNetworked(props)
-
-								coordsProps = GetEntityCoords(props, true)
-								
-								PlaceObjectOnGroundProperly(props)
-							
-								FreezeEntityPosition(props, true)
-							
-								table.insert(farmProps, props)
-							end
-						end
-					end
-				else
-					if ground then
-						if #farmProps < Config.Field[currentPlant].maxProps then
-							props = CreateObject(propFarm, posX, posY, posZ, false, true, false)
-
-							NetworkRegisterEntityAsNetworked(props)
-
-							coordsProps = GetEntityCoords(props, true)
-							
+						if ground and #farmProps < fieldData.maxProps then
+							local props = CreateObject(propFarm, posX, posY, posZ, false, false, false)
+							-- NetworkRegisterEntityAsNetworked(props)
 							PlaceObjectOnGroundProperly(props)
-						
 							FreezeEntityPosition(props, true)
-						
 							table.insert(farmProps, props)
 						end
 					end
+				else
+					if ground and #farmProps < fieldData.maxProps then
+						local props = CreateObject(propFarm, posX, posY, posZ, false, false, false)
+						-- NetworkRegisterEntityAsNetworked(props)
+						PlaceObjectOnGroundProperly(props)
+						FreezeEntityPosition(props, true)
+						table.insert(farmProps, props)
+					end
 				end
 			else
-				for _,v in pairs(farmProps) do
-					Citizen.Wait(100)
+				for _, v in pairs(farmProps) do
 					DeleteObject(v)
 				end
-				
-				farmProps ={}
+				farmProps = {}
 			end
-		end	
-
-		if letSleep then
-			Citizen.Wait(400)
 		end
+
+		Citizen.Wait(1000)
 	end
 end)
+
 
 function DisablePvP(state)
     if state == isPvPDisabled and inPvPZone == state then return end
@@ -191,31 +188,71 @@ function progressBar(duration,v, k)
 
 	TaskPlayAnim(PlayerPedId(), 'mech_pickup@treasure@rock_pile', "pickup", 3.0, -8, duration, 1, 0, 0, 0, 0 )
 
-	if lib.progressCircle({
-		duration = duration,
-		position = 'bottom',
-		label = Config.Text.progressbarLabel .. " " .. Config.Field[currentPlant].nameField,
-		useWhileDead = false,
-		canCancel = false,
-		disable = {
-			car = true,
-			move = true,
-			combat = true,
-			sprint = true,
-			mouse = true,
-		},
-	})
-	then
-		DeleteObject(v)
-	
-		table.remove(farmProps, k)
+	if Config.Progressbar == 'circle' then
+		if lib.progressCircle({
+			duration = duration,
+			position = 'bottom',
+			label = Config.Text.progressbarLabel .. " " .. Config.Field[currentPlant].nameField,
+			useWhileDead = false,
+			canCancel = false,
+			disable = {
+				car = true,
+				move = true,
+				combat = true,
+				sprint = true,
+				mouse = true,
+			},
+		})
+		then
+			DeleteObject(v)
 		
-		for k,field in pairs(Config.Field) do
-			TriggerServerEvent("ip_field:getReward",k)
+			table.remove(farmProps, k)
+			
+			for k,field in pairs(Config.Field) do
+				TriggerServerEvent("phantom_field:getReward",k)
+			end
+		else
+			print('Do stuff when cancelled')
 		end
-	else
-		print('Do stuff when cancelled')
-	end		
+	elseif Config.Progressbar == 'default' then
+		if lib.progressBar({
+			duration = duration,
+			position = 'bottom',
+			label = Config.Text.progressbarLabel .. " " .. Config.Field[currentPlant].nameField,
+			useWhileDead = false,
+			canCancel = false,
+			disable = {
+				car = true,
+				move = true,
+				combat = true,
+				sprint = true,
+				mouse = true,
+			},
+		})
+		then
+			DeleteObject(v)
+		
+			table.remove(farmProps, k)
+			
+			for k,field in pairs(Config.Field) do
+				TriggerServerEvent("phantom_field:getReward",k)
+			end
+		else
+			print('Do stuff when cancelled')
+		end	
+	elseif Config.Progressbar == 'vorp' then
+		progressbar = exports.vorp_progressbar:initiate()
+
+		progressbar.start(Config.Text.progressbarLabel .. " " .. Config.Field[currentPlant].nameField, duration, function ()
+			DeleteObject(v)
+		
+			table.remove(farmProps, k)
+			
+			for k,field in pairs(Config.Field) do
+				TriggerServerEvent("phantom_field:getReward",k)
+			end
+		end, 'linear')
+	end
 
 end
 
@@ -240,8 +277,19 @@ Citizen.CreateThread(function()
 					DrawText3D(currentCoords.x, currentCoords.y, currentCoords.z, Config.Text.drawTextLabel)
 					if IsControlJustReleased(0, 0x760A9C6F) then
 						if Config.Field[currentPlant].itemRequired.enabled then
-							if Core.Functions.HasItem(Config.Field[currentPlant].itemRequired.itemName, 1) then
-								progressBar(duration,v,k)
+							if Framework == 'rsg' then
+								if Core.Functions.HasItem(Config.Field[currentPlant].itemRequired.itemName, 1) then
+									progressBar(duration,v,k)
+								else
+									Notify('no_item',Config.Field[currentPlant].itemRequired.itemName)
+								end
+							elseif Framework == 'vorp' then
+								local result = lib.callback.await("phantom_field:hasItem", false)
+								if result ~= nil and result.count >=1 then
+									progressBar(duration,v,k)
+								else
+									Notify('no_item',Config.Field[currentPlant].itemRequired.itemName)
+								end
 							end
 						else
 							progressBar(duration,v,k)
@@ -258,6 +306,8 @@ Citizen.CreateThread(function()
 									if Config.Field[currentPlant].itemRequired.enabled then
 										if Core.Functions.HasItem(Config.Field[currentPlant].itemRequired.itemName, 1) then
 											progressBar(duration,v,k)
+										else
+											Notify('no_item',Config.Field[currentPlant].itemRequired.itemName)
 										end
 									else
 										progressBar(duration,v,k)
@@ -289,14 +339,10 @@ function resetField()
 end
 
 AddEventHandler('onResourceStop', function(resource)
-	if resource == GetCurrentResourceName() then
-		resetField()
-	end
+	resetField()
 end)
 AddEventHandler('onResourceStart', function(resource)
-	if resource == GetCurrentResourceName() then
-		setupBlip()
-	end
+	setupBlip()
 end)
 
 function DrawText3D(x, y, z, text)

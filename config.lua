@@ -1,7 +1,7 @@
 Config = {}
 
 Config.Target = {
-	enabled = true,
+	enabled = false,
 	target = 'rsg'
 }
 
@@ -9,6 +9,13 @@ Config.Text = {
 	drawTextLabel = 'Press ~e~[G]~q~ to Harvest!',
 	targetLabel = 'Harvest',
 	progressbarLabel = 'Collecting',
+}
+
+Config.Progressbar = 'vorp' -- default (ox_lib) | circle (ox_lib) | vorp (default vorp progressbar)
+
+
+Config.Notify = {
+    no_item = {title = 'Field', description = "You missing the requirement item: ", typeMessage = "error", duration = 4000},
 }
 
 Config.Field = {
@@ -23,12 +30,12 @@ Config.Field = {
 		itemReward = "desert_sage", countReward = 1,
 
 		whitelistJob = {
-			enabled = true,
+			enabled = false,
 			jobName = 'medic'
 		},
 
 		itemRequired = {
-			enabled = true,
+			enabled = false,
 			itemName = 'bread'
 		},
 
